@@ -5,7 +5,7 @@ import path from 'path';
  * 项目名称
  * 必须为字母开头，而且只能包含小写字母、数字和下划线
  */
-let addon_name: string = 'x_template';
+let addon_name: string = 'mu_se_gui_tai';
 
 /**
  * 要加密的项目列表
@@ -59,7 +59,7 @@ function validateAddonName() {
     }
     if (addon_name === 'x_template') {
         throw new Error(
-            '请到 scripts/addon.config.ts 修改 addon_name 为你的项目名称，不能为 x_template\nplease change addon_name in addon.config.ts to your project name, not x_template'
+            '请到 scripts/addon.config.ts 修改 addon_name 为你的项目名称，不能为 x_template\nplease change addon_name in addon.config.ts to your project name, not mu_se_gui_tai'
         );
     }
 }

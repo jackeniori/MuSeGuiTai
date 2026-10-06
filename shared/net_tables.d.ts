@@ -17,4 +17,10 @@ declare interface CustomNetTableDeclarations {
         key_1: number;
         key_2: string;
     };
+    tc_customer_arrived: {
+        uid: string;
+    };
+    tc_customer_left: {
+        uid: string;
+    };
 }

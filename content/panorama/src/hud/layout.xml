@@ -1,4 +1,5 @@
 <root>
+     
     <scripts>
         <include src="./script.tsx" />
     </scripts>
@@ -6,5 +7,10 @@
         <include src="s2r://panorama/styles/dotastyles.vcss_c" />
         <include src="./styles.less" />
     </styles>
-    <Panel class="root" hittest="false" />
+    <Panel class="root" hittest="false">
+        <Panel id="main" class="root"  hittest="false" />
+        <Panel id="twilight_counter_main" class="root"  hittest="false" />
+        
+    </Panel>
+    
 </root>

@@ -21,6 +21,10 @@ export default function Precache(context: CScriptPrecacheContext) {
     // 需要预载入的单位
     precacheUnits(
         [
+            'npc_dota_hero_axe',
+            'npc_dota_hero_crystal_maiden',
+            'npc_dota_hero_windrunner',
+            'npc_dota_hero_pudge',
             // 单位名称
             // 'npc_dota_hero_***',
         ],

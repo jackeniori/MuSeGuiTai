@@ -1,11 +1,13 @@
 import { Debug } from '../utils/testing/debug';
 import { GameConfig } from './GameConfig';
+import { GameMode } from './GameMode';
 import { XNetTable } from '../utils/xnet-table';
 
 declare global {
     interface CDOTAGameRules {
         // 声明所有的GameRules模块，这个主要是为了方便其他地方的引用（保证单例模式）
         XNetTable: XNetTable;
+        Addon:GameMode;
     }
 }
 
@@ -18,6 +20,7 @@ export function ActivateModules() {
         // 初始化所有的GameRules模块
         GameRules.XNetTable = new XNetTable();
         // 如果某个模块不需要在其他地方使用，那么直接在这里使用即可
+        GameRules.Addon = new GameMode();
         new GameConfig();
         // 初始化测试模块xD
         new Debug();
