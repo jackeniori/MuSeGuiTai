@@ -1,3 +1,7 @@
+
+declare interface BasicSettings {}
+
+// 专门为性能调试模块增加的表
 declare interface XNetTableDefinitions {
     test_table: {
         test_key: {
@@ -10,12 +14,6 @@ declare interface XNetTableDefinitions {
     settings: {
         basicSettings: BasicSettings;
     };
-}
-
-declare interface BasicSettings {}
-
-// 专门为性能调试模块增加的表
-declare interface XNetTableDefinitions {
     performance_debug: {
         [key: string]: any;
     };
@@ -33,6 +31,10 @@ declare interface XNetTableDataJSON {
     value: any;
 }
 
+interface ItemSlot {
+    item: ItemInstance | null;
+    count: number;
+}
 
 // 以下是库内部使用的，勿动
 declare interface CustomGameEventDeclarations {
@@ -41,22 +43,82 @@ declare interface CustomGameEventDeclarations {
             | string // 要么是以字符串形式发送的数据块
             | XNetTableObject; // 要么是一次性发送的数据
     };
-    tc_customer_arrived: { uid: string; defId: string; itemDefId?: string; condition?: number; isIdentified?: boolean; buyInterest: string; offerPrice?: number };
-    tc_customer_left: { uid: string };
+    /** 客户端请求英雄关系数据 */
+    tc_request_hero_relations: {
+        PlayerID: number;
+    };
+
+    /** 服务端返回英雄关系数据 */
+    tc_hero_relations_response: {
+        playerID: number;
+        relations: string;   // JSON 字符串，因为 NetTable/事件不支持复杂嵌套
+    }; 
+    tc_customer_arrived: {
+        playerID: number;
+        uid: string;
+        defId: string;
+        itemDefId?: string;
+        condition?: number;
+        isIdentified?: 0 | 1;
+        buyInterest: string;
+        offerPrice?: number;
+        bagList: string;  
+        buyItemUid?: string;
+        buyItemDefId?: string;
+        buyItemCondition?: number;
+        buyOfferPrice?: number;
+        customerCash?: number;
+    };
+
+    /** 玩家卖东西给顾客 */
+    tc_player_sell: {
+        PlayerID: number;
+        uid: string;
+    };
+
+    /** 卖出结果 */
+    tc_sell_result: {
+        playerID: number;
+        uid: string;
+        accepted: 0 | 1;
+        price?: number;
+        itemDefId?: string;
+        reason?: string;
+    };
+    tc_customer_left: { playerID: number;uid: string };
     tc_update_state: { phase: string; day: number; money: number };
     // 新增：交易结果
     tc_deal_result: {
+        playerID: number;
         uid: string;
-        accepted: boolean;
+        accepted: 0 | 1;
         finalPrice?: number;
         counterOffer?: number;
+        tier?: string;
+        reputationDelta?: number;
+        rejectReason?: string;
+        softReject?: 0 | 1;
+        sellIndex?: number;         
+        remainingBag?: string;     
+        allDone?: 0 | 1;        
     };
-
-    // 新增：玩家报价（客户端 → 服务端）
+    /** 玩家拒绝顾客 */
+    tc_customer_refused: {
+        PlayerID: number;
+        uid: string;
+    };
+    /** 玩家主动结束交易 */
+    tc_end_trade: {
+        PlayerID: number;
+        uid: string;
+    };
+    // 玩家报价（客户端 → 服务端）
     tc_player_offer: {
         PlayerID: number;
         uid: string;
-        price: number;
+        tier: 'accept' | 'haggle1' | 'haggle2' | 'overpay1' | 'overpay2';
+        sellIndex: number;
+        buyAll?: number; 
     };
     ItemDef: {
     id: string;
@@ -109,15 +171,26 @@ interface Employee {
     equipment: { weapon?: string; armor?: string; accessory?: string };
 }
 //顾客
+type Faction = 'strength' | 'intelligence' | 'agility' | 'universal';
 interface CustomerInstance {
     uid: string;   
     defId: string; //顾客的模板定义 ID 如 "npc_dota_hero_axe"
     entityIndex: EntityIndex;    // Dota单位索引
+    playerID: number;              // 归属玩家
+    faction: Faction;                          // 派系，从英雄属性自动判断
     state: 'spawning' | 'walking' | 'atCounter' | 'negotiating' | 'done' | 'leaving';
-    currentItemForSale?: ItemInstance;//顾客当前所处的状态，驱动 AI 状态机。	'spawning'（生成中）、'walking'（走向柜台）、'atCounter'（已到柜台）、'negotiating'（谈判中）、'done'（交易完成）、'leaving'（离开）
-    buyInterest: string; // 顾客想买的物品类型（如'weapon' | 'armor' | 'potion'）
+    bag: ItemInstance[]; /** 顾客携带的所有物品（可以多件） */
+    activeSellIndex: number; /**当前正在交易的物品在 bag 里的索引，-1 表示没有 */
+    buyInterest: string[]; // 顾客想买的物品类型（如'weapon' | 'armor' | 'potion'）
+    /** 顾客想买的具体物品（未来用，现在不填） */
+    buyRequest?: {
+        itemUid: string;
+        itemDefId: string;
+        offerPrice: number;
+    };
     offerPrice?: number;     // 当前出价
     reputationDelta: number; // 本次交易后好感度变化
+    hasTriedQueue?: boolean;   // 是否已经尝试过推进队列
 }
 type CustomerPersonality = 'greedy' | 'cautious' | 'generous' | 'desperate';
 
@@ -128,5 +201,6 @@ interface CustomerDef {
   faction: string;            // 顾客所属阵营/派系，用于解锁特殊交易或剧情线（如'radiant' | 'dire' | 'neutral'）
   initialOfferItems: string[]; // 带来的物品defId列表
   buyInterest: string[];      // 想买的物品类型（如'weapon' | 'armor' | 'potion'）
+  maxBagSize?: number;   // 顾客最多带几件，默认 3
 }
 

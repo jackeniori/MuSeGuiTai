@@ -1,115 +1,70 @@
+// game/scripts/src/modules/state.ts
+import { PlayerData, createDefaultPlayerData } from "./player_data";
+import { getItemDef } from "./items";
+/** 所有玩家的状态字典 */
+const playerStates: Record<number, PlayerData> = {};
 
+/** 初始化所有已连接玩家 */
+export function initAllPlayers(): void {
+    const count = PlayerResource.GetPlayerCount();
+    print(`[初始化] 玩家总数=${count}`);   // 【加日志】
 
-//import { initInventory } from "./inventory";
-/** 库存格子 */
-export interface ItemSlot {
-    item: ItemInstance | null;   // null 表示空格
-    count: number;               // 堆叠数量
+    for (let i = 0; i < count; i++) {
+        const valid = PlayerResource.IsValidPlayerID(i);
+        print(`[初始化] 槽位 ${i} 有效=${valid}`);   // 【加日志】
+        if (valid) {
+            playerStates[i] = createDefaultPlayerData(i);
+        }
+    }
+    print(`[暮色柜台] 初始化了 ${Object.keys(playerStates).length} 个玩家`);
 }
 
-interface  GameState {
-    day: number;
-    phase: 'morning' | 'afternoon' | 'evening' | 'night' | 'deepNight';
-    cash: number;
-    rent: number;              // 每日房租
-    reputation: Record<string, number>;  // 派系好感度
-    inventory?: ItemSlot []
-    displayCase: (ItemInstance | null)[]; // 展示柜格子，固定长度（例如6格），null表示空格
-    employees: Employee[];
-    currentCustomerQueue: CustomerInstance[];
-    events?:  {
-        id?: string;
-        type?: 'raid' | 'smuggle' | 'dispute' | 'investigation';
-        difficulty?: number;
-        description?: string;
-        assignedEmployeeIds?: string[];
-        resolved?: boolean;
-    };
-}
-let state: GameState = {
-  day: 1,
-  phase: 'morning',
-  cash: 500,
-  rent: 100,  
-  reputation: {},
-  inventory: [],
-  displayCase: [], // 展示柜格子，固定长度（例如6格），null表示空格
-  employees: [],
-  currentCustomerQueue: [],
-  //events: []
-};
-
-// 存档键名
-const SAVE_KEY = 'twilight_state';
-
-export function saveGame(): void {
-  // 使用 CustomNetTables 或本地文件存储
-  // 这里用简单的全局变量模拟
-  print("Saving game...");
-  // 实际可调用 CustomNetTables.SetTableValue('twilight', 'state', state)
+/** 取某个玩家的状态（不存在则创建） */
+export function getPlayerState(playerID: number): PlayerData {
+    if (!playerStates[playerID]) {
+        playerStates[playerID] = createDefaultPlayerData(playerID);
+    }
+    return playerStates[playerID];
 }
 
-export function loadGame(): boolean {
-  // 尝试读取存档
-  return false; // 无存档则返回false
+/** 删除玩家状态 */
+export function removePlayerState(playerID: number): void {
+    delete playerStates[playerID];
 }
 
-export function getState(): GameState {
-  return state;
+/** 遍历所有玩家 */
+export function getAllPlayerStates(): PlayerData[] {
+    return Object.values(playerStates);
 }
 
-export function setPhase(phase: GameState['phase']): void {
-  state.phase = phase;
+/** 把玩家关键状态同步到 NetTable，客户端用来显示金币和日期 */
+export function syncPlayerState(playerID: number): void {
+    const state = getPlayerState(playerID);
+    print(`[NetTable] 同步玩家 ${playerID}: day=${state.day}, cash=${state.cash}`);   
+    CustomNetTables.SetTableValue('tc_player', `player_${playerID}`, {
+        day: state.day,
+        phase: state.phase,
+        cash: state.cash,
+        rent: state.rent,
+        factionRelations: state.factionRelations,    
+        heroRelations: state.heroRelations,       
+        inventory: serializeInventory(state.inventory),  
+    });
 }
 
-export function modifyCash(delta: number): void {
-  state.cash += delta;
-  if (state.cash < 0) state.cash = 0;
+function serializeInventory(inventory: ItemSlot[]): string {
+    const parts: string[] = [];
+    for (let i = 0; i < inventory.length; i++) {
+        const slot = inventory[i];
+        if (slot.item) {
+            const def = getItemDef(slot.item.defId);
+            const type = def ? def.type : 'unknown';
+            const identified = slot.item.isIdentified ? 'true' : 'false';
+            parts.push(`{"slot":${i},"uid":"${slot.item.uid}","defId":"${slot.item.defId}","type":"${type}","condition":${slot.item.condition},"isIdentified":${identified}}`);
+        }
+    }
+    return `[${parts.join(',')}]`;
 }
-
-export function endDay(): void {
-    const state = getState();
-
-    // 扣房租
-    state.cash -= state.rent;
-    print(`[暮色柜台] 第 ${state.day} 天结束，扣房租 ${state.rent}，剩余现金 ${state.cash}`);
-
-    // 天数 +1
-    state.day += 1;
-    // 房租随天数上涨，每天 +10
-    state.rent = 100 + (state.day - 1) * 10;
-    // 时段重置
-    state.phase = 'morning';
-
-    // 清空队列
-    state.currentCustomerQueue = [];
-
-    // 重置“今日已生成”标记
-    setTodaySpawned(false);
-
-    print(`[暮色柜台] 第 ${state.day} 天开始，现金 ${state.cash}，房租 ${state.rent}`);
+export function setPlayerState(playerID: number, data: PlayerData): void {
+    playerStates[playerID] = data;
 }
-
-let counterOccupiedBy: string = '';
-
-export function getCounterOccupiedBy(): string {
-    return counterOccupiedBy;
-}
-
-export function setCounterOccupiedBy(uid: string): void {
-    counterOccupiedBy = uid;
-}
-
-let todaySpawned: boolean = false;
-
-export function isTodaySpawned(): boolean {
-    return todaySpawned;
-}
-
-export function setTodaySpawned(v: boolean): void {
-    todaySpawned = v;
-}
-
-
-// 初始化
-//initInventory();

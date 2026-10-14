@@ -23,4 +23,15 @@ declare interface CustomNetTableDeclarations {
     tc_customer_left: {
         uid: string;
     };
+    tc_player: {
+        [key: string]: {
+            day: number;
+            phase: string;
+            cash: number;
+            rent: number;
+            factionRelations: Record<string, { favor: number; level: number; unlocked: boolean }>;
+            heroRelations: Record<string, { favor: number; tradeCount: number; totalTradeAmount: number }>; 
+            inventory: string;  // JSON 字符串，表示玩家的物品栏
+        };
+    };
 }

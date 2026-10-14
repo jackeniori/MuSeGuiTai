@@ -4,6 +4,7 @@ export default function Precache(context: CScriptPrecacheContext) {
     // 需要预载的所有资源
     precacheResource(
         [
+            'soundevents/physics/movement/automaton/automaton_footsteps.vsndevts',
             // '***.vpcf',
             // 'soundevents/game_sounds_heroes/game_sounds_queenofpain.vsndevts',
             // '***.vmdl',
@@ -25,6 +26,7 @@ export default function Precache(context: CScriptPrecacheContext) {
             'npc_dota_hero_crystal_maiden',
             'npc_dota_hero_windrunner',
             'npc_dota_hero_pudge',
+
             // 单位名称
             // 'npc_dota_hero_***',
         ],
